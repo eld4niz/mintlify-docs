@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "maple",
-  "name": "NeuroNav SLAM SDK",
+  "name": "Neuronav SLAM SDK",
   "colors": {
     "primary": "#FF6B35",
     "light": "#FF8C42",
@@ -72,18 +72,18 @@
     }
   },
   "metadata": {
-    "og:title": "NeuroNav SLAM SDK Documentation",
-    "og:description": "Comprehensive documentation for NeuroNav SLAM SDK - A 2-line Python SDK for real-time SLAM with RealSense and OAK-D Pro cameras",
+    "og:title": "Neuronav SLAM SDK Documentation",
+    "og:description": "Comprehensive documentation for Neuronav SLAM SDK - A 2-line Python SDK for real-time SLAM with RealSense and OAK-D Pro cameras",
     "og:image": "/Group 8.svg",
-    "twitter:title": "NeuroNav SLAM SDK",
+    "twitter:title": "Neuronav SLAM SDK",
     "twitter:description": "2-line Python SDK for real-time SLAM"
   },
   "search": {
-    "prompt": "Search NeuroNav SDK documentation..."
+    "prompt": "Search Neuronav SDK documentation..."
   },
   "ai": {
     "enabled": true,
-    "prompt": "Ask me anything about the NeuroNav SLAM SDK...",
-    "defaultMessage": "I'm here to help you with the NeuroNav SLAM SDK. You can ask me about sensors, algorithms, configuration, or any other SDK-related questions."
+    "prompt": "Ask me anything about the Neuronav SLAM SDK...",
+    "defaultMessage": "I'm here to help you with the Neuronav SLAM SDK. You can ask me about sensors, algorithms, configuration, or any other SDK-related questions."
   }
 }
