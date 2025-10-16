@@ -1,0 +1,89 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "maple",
+  "name": "NeuroNav SLAM SDK",
+  "colors": {
+    "primary": "#FF6B35",
+    "light": "#FF8C42",
+    "dark": "#E55100"
+  },
+  "favicon": "/logo-neuronav-final-v2 3.png",
+  "navigation": {
+    "global": {
+      "anchors": [
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/neuronav/neuronav-slam-sdk",
+          "icon": "github"
+        }
+      ]
+    },
+    "groups": [
+      {
+        "group": "Getting Started",
+        "pages": [
+          "getting-started/introduction",
+          "getting-started/quickstart",
+          "getting-started/installation"
+        ]
+      },
+      {
+        "group": "Sensors",
+        "pages": [
+          "sensors/overview",
+          "sensors/custom-sensors"
+        ]
+      },
+      {
+        "group": "Examples",
+        "pages": [
+          "examples/basic-slam"
+        ]
+      },
+      {
+        "group": "Configuration",
+        "pages": [
+          "configuration/overview",
+          "configuration/docker",
+          "configuration/troubleshooting"
+        ]
+      }
+    ]
+  },
+  "logo": {
+    "light": "/Group 8.svg",
+    "dark": "/Group 8.svg"
+  },
+  "navbar": {
+    "links": []
+  },
+  "contextual": {
+    "options": [
+     "copy",
+     "view",
+     "chatgpt",
+     "claude"
+   ]
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/neuronav",
+      "linkedin": "https://linkedin.com/company/neuronav"
+    }
+  },
+  "metadata": {
+    "og:title": "NeuroNav SLAM SDK Documentation",
+    "og:description": "Comprehensive documentation for NeuroNav SLAM SDK - A 2-line Python SDK for real-time SLAM with RealSense and OAK-D Pro cameras",
+    "og:image": "/Group 8.svg",
+    "twitter:title": "NeuroNav SLAM SDK",
+    "twitter:description": "2-line Python SDK for real-time SLAM"
+  },
+  "search": {
+    "prompt": "Search NeuroNav SDK documentation..."
+  },
+  "ai": {
+    "enabled": true,
+    "prompt": "Ask me anything about the NeuroNav SLAM SDK...",
+    "defaultMessage": "I'm here to help you with the NeuroNav SLAM SDK. You can ask me about sensors, algorithms, configuration, or any other SDK-related questions."
+  }
+}

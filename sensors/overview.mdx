@@ -1,0 +1,162 @@
+---
+title: Sensors
+description: Supported depth cameras and configuration
+---
+
+# Supported Sensors
+
+The SDK supports popular depth cameras out of the box, with automatic driver management and topic remapping.
+
+## Sensor Comparison
+
+| Feature | RealSense D435i | RealSense D455 | RealSense D415 | OAK-D Pro | OAK-D Pro W |
+|---------|----------------|----------------|----------------|-----------|-------------|
+| **Price** | ~$350 | ~$450 | ~$300 | ~$400 | ~$500 |
+| **Range** | 0.2-10m | 0.4-20m | 0.3-10m | 0.2-15m | 0.2-20m |
+| **FOV** | 87°×58° | 87°×58° | 69°×42° | 80°×55° | 150°×100° |
+| **IMU** | Yes | Yes | No | Yes | Yes |
+| **Best For** | Indoor robots | Outdoor/long range | Precision scanning | AI applications | Outdoor AI |
+| **Global Shutter** | No | Yes | No | No | No |
+
+## Intel RealSense
+
+The most popular choice for SLAM applications. Three models supported:
+
+### D435i - Balanced Performance
+Best for general indoor robotics.
+
+```python
+from neuronav import RealSenseSensor, SensorConfig
+
+# Basic usage - auto-detects camera
+sensor = RealSenseSensor()
+
+# Optimized for navigation
+config = SensorConfig(
+    rgb_width=848,      # D435's optimal width
+    rgb_height=480,
+    fps=30,
+    enable_imu=True,    # Use built-in IMU
+    custom_params={
+        "laser_power": "150",  # Balance range/power
+        "temporal_filter": "true"
+    }
+)
+sensor = RealSenseSensor(config)
+
+# Multiple cameras
+sensor1 = RealSenseSensor(SensorConfig(device_id="123456"))
+sensor2 = RealSenseSensor(SensorConfig(device_id="789012"))
+```
+
+### D455 - Extended Range
+Best for outdoor and large spaces.
+
+```python
+# Outdoor configuration
+outdoor_config = SensorConfig(
+    rgb_width=1280,
+    rgb_height=720,
+    fps=30,
+    custom_params={
+        "laser_power": "360",  # Maximum for sunlight
+        "exposure": "auto"
+    }
+)
+```
+
+### D415 - High Accuracy
+Best for 3D scanning and close-range work.
+
+```python
+# Precision scanning
+scan_config = SensorConfig(
+    rgb_width=1920,
+    rgb_height=1080,
+    fps=15,  # Lower FPS for quality
+    custom_params={
+        "depth_confidence": "1"  # Higher accuracy
+    }
+)
+```
+
+### Installation
+
+```bash
+# Add Intel repository
+sudo mkdir -p /etc/apt/keyrings
+curl -sSf https://librealsense.intel.com/Debian/librealsense.pgp | \
+    sudo tee /etc/apt/keyrings/librealsense.pgp > /dev/null
+echo "deb [signed-by=/etc/apt/keyrings/librealsense.pgp] \
+    https://librealsense.intel.com/Debian/apt-repo \
+    $(lsb_release -cs) main" | \
+    sudo tee /etc/apt/sources.list.d/librealsense.list
+
+# Install packages
+sudo apt update
+sudo apt install librealsense2-dkms librealsense2-utils -y
+sudo apt install ros-humble-realsense2-camera -y
+
+# Test camera
+realsense-viewer
+```
+
+## OAK-D Pro
+
+Luxonis OAK-D Pro and Pro W with on-device AI.
+
+```python
+from neuronav import OAKDSensor, SensorConfig
+
+# Basic usage
+sensor = OAKDSensor()
+
+# With configuration
+config = SensorConfig(
+    rgb_width=1280,
+    rgb_height=720,
+    fps=30
+)
+sensor = OAKDSensor(config)
+```
+
+### Installation
+
+```bash
+# Install DepthAI
+pip install depthai
+sudo apt install ros-humble-depthai-ros
+```
+
+## Configuration Options
+
+```python
+@dataclass
+class SensorConfig:
+    device_id: Optional[str] = None     # Camera serial number
+    rgb_width: int = 640                # RGB resolution
+    rgb_height: int = 480
+    depth_width: int = 640              # Depth resolution
+    depth_height: int = 480
+    fps: int = 30                       # Frame rate
+    enable_imu: bool = True              # Use IMU if available
+    enable_ir: bool = False              # IR projector
+    custom_params: Dict = None          # Sensor-specific params
+```
+
+## Common Settings
+
+### Fast Navigation
+```python
+config = SensorConfig(rgb_width=640, rgb_height=480, fps=60)
+```
+
+### High Quality
+```python
+config = SensorConfig(rgb_width=1920, rgb_height=1080, fps=30)
+```
+
+### Low Power
+```python
+config = SensorConfig(rgb_width=640, rgb_height=480, fps=15)
+```

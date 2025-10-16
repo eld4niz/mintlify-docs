@@ -1,0 +1,71 @@
+---
+title: Troubleshooting
+description: Common issues and solutions
+---
+
+# Troubleshooting Guide
+
+## Common Issues
+
+### Camera Not Detected
+
+```bash
+# Check USB devices
+lsusb
+
+# Check permissions
+sudo usermod -a -G dialout $USER
+
+# Restart udev
+sudo udevadm control --reload-rules
+```
+
+### Low Frame Rate
+
+- Reduce resolution
+- Check USB 3.0 connection
+- Disable unnecessary processing
+
+### SLAM Lost Tracking
+
+- Improve lighting
+- Reduce motion speed
+- Enable IMU fusion
+- Check for feature-rich environment
+
+### High CPU Usage
+
+```python
+config = SensorConfig(
+    rgb_width=640,
+    rgb_height=480,
+    fps=15
+)
+```
+
+## Debug Tools
+
+### Check Topics
+
+```bash
+python debug_topics.py
+```
+
+### Monitor Performance
+
+```bash
+# CPU usage
+htop
+
+# GPU usage
+nvidia-smi
+
+# Memory
+free -h
+```
+
+## Getting Help
+
+- GitHub Issues: [Report bugs](https://github.com/neuronav/neuronav-slam-sdk/issues)
+- Documentation: Check specific sensor/algorithm pages
+- Email: support@neuronav.com

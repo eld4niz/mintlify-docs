@@ -1,0 +1,146 @@
+---
+title: Quick Start
+description: Start using NeuroNav SLAM SDK in 2 minutes
+---
+
+# Quick Start
+
+NeuroNav SLAM SDK lets you run real-time 3D mapping with just 2 lines of Python code. No ROS2 expertise required!
+
+## Prerequisites
+
+Before starting, ensure you have:
+- Ubuntu 20.04/22.04 (or Windows 11 with WSL2)
+- Python 3.8 or higher
+- Intel RealSense or OAK-D Pro camera
+- 8GB RAM minimum (16GB recommended)
+
+## Installation
+
+<Tabs>
+  <Tab title="Docker (Recommended)">
+    Docker provides the fastest setup with all dependencies pre-installed.
+
+    ```bash
+    # 1. Clone the repository
+    git clone https://github.com/neuronav/neuronav-slam-sdk.git
+    cd neuronav-slam-sdk
+
+    # 2. Build Docker image (~10 minutes first time)
+    ./docker_build.sh
+
+    # 3. Run container with device access
+    ./docker_run.sh
+
+    # 4. Test your camera
+    python3 -c "from neuronav import RealSenseSensor; print('Ready!')"
+    ```
+
+    <Note>
+    Docker automatically handles ROS2, RTAB-Map, and camera drivers installation.
+    </Note>
+  </Tab>
+
+  <Tab title="Native Installation">
+    For users who prefer native installation.
+
+    ```bash
+    # 1. Install ROS2 Humble (if not installed)
+    sudo apt update
+    sudo apt install software-properties-common
+    sudo add-apt-repository universe
+    sudo apt update && sudo apt install curl -y
+    sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+    sudo apt update
+    sudo apt install ros-humble-desktop -y
+
+    # 2. Install RTAB-Map and dependencies
+    sudo apt install ros-humble-rtabmap-ros -y
+
+    # 3. Install camera drivers (choose one)
+    # For RealSense:
+    sudo apt install ros-humble-realsense2-camera -y
+    # For OAK-D:
+    sudo apt install ros-humble-depthai-ros -y
+
+    # 4. Install Python SDK
+    git clone https://github.com/neuronav/neuronav-slam-sdk.git
+    cd neuronav-slam-sdk
+    pip install -e .
+    ```
+  </Tab>
+
+  <Tab title="Quick Test">
+    Test your installation without installing anything.
+
+    ```bash
+    # Using our pre-built Docker image
+    docker run -it --rm \
+      --privileged \
+      -v /dev:/dev \
+      neuronav/slam-sdk:latest \
+      python3 -c "from neuronav import RealSenseSensor, run_slam, RTABMapSLAM; sensor = RealSenseSensor(); run_slam(sensor, RTABMapSLAM(), duration=30)"
+    ```
+  </Tab>
+</Tabs>
+
+## Basic Usage
+
+```python
+from neuronav import RealSenseSensor, run_slam, RTABMapSLAM
+
+# That's it! 2 lines
+sensor = RealSenseSensor()
+run_slam(sensor, RTABMapSLAM())
+```
+
+## With Visualization
+
+```python
+from neuronav import RealSenseSensor, run_slam, RTABMapSLAM
+
+sensor = RealSenseSensor()
+run_slam(sensor, RTABMapSLAM(), visualize=True)
+
+# Open http://localhost:8765 in browser
+```
+
+## Examples
+
+### High Quality Mapping
+
+```python
+from neuronav import SensorConfig, RealSenseSensor, run_slam, RTABMapSLAM
+
+config = SensorConfig(
+    rgb_width=1280,
+    rgb_height=720,
+    fps=30
+)
+
+sensor = RealSenseSensor(config)
+run_slam(sensor, RTABMapSLAM())
+```
+
+### Using OAK-D Pro
+
+```python
+from neuronav import OAKDSensor, run_slam, RTABMapSLAM
+
+sensor = OAKDSensor()
+run_slam(sensor, RTABMapSLAM())
+```
+
+## System Requirements
+
+- **OS**: Ubuntu 20.04/22.04
+- **Python**: 3.8+
+- **Camera**: Intel RealSense or OAK-D Pro
+- **RAM**: 8GB minimum
+
+## Next Steps
+
+- [Configure Sensors](/sensors)
+- [Customize Settings](/configuration)
+- [Troubleshooting](/troubleshooting)

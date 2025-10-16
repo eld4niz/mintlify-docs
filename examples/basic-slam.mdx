@@ -1,0 +1,427 @@
+---
+title: Basic SLAM Examples
+description: Simple examples to get started with SLAM
+---
+
+# Basic SLAM Examples
+
+Ready-to-run examples for common SLAM scenarios.
+
+## Minimal Example
+
+The simplest possible SLAM application:
+
+```python
+#!/usr/bin/env python3
+"""minimal_slam.py - Simplest SLAM example"""
+
+from neuronav import RealSenseSensor, run_slam, RTABMapSLAM
+
+# Create sensor and SLAM
+sensor = RealSenseSensor()
+slam = RTABMapSLAM()
+
+# Run SLAM
+run_slam(sensor, slam)
+```
+
+## With Visualization
+
+Enable 3D visualization:
+
+```python
+#!/usr/bin/env python3
+"""slam_with_viz.py - SLAM with Foxglove visualization"""
+
+from neuronav import RealSenseSensor, run_slam, RTABMapSLAM
+
+# Create components
+sensor = RealSenseSensor()
+slam = RTABMapSLAM()
+
+# Run with visualization
+print("Starting SLAM with visualization...")
+print("Open http://localhost:8765 in your browser")
+run_slam(sensor, slam, visualize=True)
+```
+
+## Custom Configuration
+
+Configure sensor and SLAM parameters:
+
+```python
+#!/usr/bin/env python3
+"""custom_config.py - SLAM with custom configuration"""
+
+from neuronav import (
+    RealSenseSensor,
+    OAKDSensor,
+    SensorConfig,
+    RTABMapSLAM,
+    SlamConfig,
+    run_slam
+)
+
+# Configure sensor for high quality
+sensor_config = SensorConfig(
+    rgb_width=1280,
+    rgb_height=720,
+    depth_width=640,
+    depth_height=480,
+    fps=30,
+    enable_imu=True,
+    custom_params={
+        "laser_power": "150",
+        "temporal_filter": "true"
+    }
+)
+
+# Configure SLAM for accuracy
+slam_config = SlamConfig(
+    enable_loop_closing=True,
+    custom_params={
+        "Rtabmap/DetectionRate": "1.0",
+        "Vis/MaxFeatures": "1000",
+        "Vis/MinInliers": "20"
+    }
+)
+
+# Create components
+sensor = RealSenseSensor(sensor_config)
+slam = RTABMapSLAM(slam_config)
+
+# Run SLAM
+run_slam(sensor, slam, visualize=True)
+```
+
+## Multiple Cameras
+
+Use multiple cameras simultaneously:
+
+```python
+#!/usr/bin/env python3
+"""multi_camera.py - SLAM with multiple cameras"""
+
+from neuronav import RealSenseSensor, SensorConfig, run_slam, RTABMapSLAM
+import threading
+
+def run_camera(device_id, name):
+    """Run SLAM for a single camera"""
+    print(f"Starting {name} with device {device_id}")
+
+    # Configure sensor
+    config = SensorConfig(device_id=device_id)
+    sensor = RealSenseSensor(config)
+
+    # Configure SLAM with unique ROS domain
+    slam_config = SlamConfig(ros_domain_id=int(device_id[-1]))
+    slam = RTABMapSLAM(slam_config)
+
+    # Run SLAM
+    run_slam(sensor, slam)
+
+# Find connected cameras
+import subprocess
+result = subprocess.run(
+    ["rs-enumerate-devices", "-s"],
+    capture_output=True,
+    text=True
+)
+
+# Extract serial numbers
+serials = [line.strip() for line in result.stdout.splitlines() if line]
+print(f"Found {len(serials)} cameras: {serials}")
+
+# Run each camera in a thread
+threads = []
+for i, serial in enumerate(serials):
+    thread = threading.Thread(
+        target=run_camera,
+        args=(serial, f"Camera_{i}")
+    )
+    thread.start()
+    threads.append(thread)
+
+# Wait for all cameras
+for thread in threads:
+    thread.join()
+```
+
+## Timed Recording
+
+Run SLAM for a specific duration:
+
+```python
+#!/usr/bin/env python3
+"""timed_slam.py - Run SLAM for specific duration"""
+
+from neuronav import RealSenseSensor, run_slam, RTABMapSLAM
+import time
+
+# Configuration
+RECORDING_DURATION = 60  # seconds
+
+# Create components
+sensor = RealSenseSensor()
+slam = RTABMapSLAM()
+
+# Run for specified duration
+print(f"Recording SLAM data for {RECORDING_DURATION} seconds...")
+start_time = time.time()
+
+run_slam(sensor, slam, duration=RECORDING_DURATION)
+
+elapsed = time.time() - start_time
+print(f"Recording complete! Duration: {elapsed:.1f} seconds")
+
+# Save the map
+slam.save_map(f"map_{int(start_time)}.db")
+print("Map saved!")
+```
+
+## With Pose Callbacks
+
+Monitor robot pose in real-time:
+
+```python
+#!/usr/bin/env python3
+"""pose_monitoring.py - SLAM with pose callbacks"""
+
+from neuronav import RealSenseSensor, RTABMapSLAM, run_slam
+import numpy as np
+
+class PoseMonitor:
+    def __init__(self):
+        self.poses = []
+        self.last_pose = None
+
+    def on_new_pose(self, position, quaternion):
+        """Called when new pose is available"""
+        # Store pose
+        self.poses.append({
+            'position': position.copy(),
+            'quaternion': quaternion.copy()
+        })
+
+        # Calculate distance traveled
+        if self.last_pose is not None:
+            distance = np.linalg.norm(position - self.last_pose)
+            if distance > 0.01:  # Moved at least 1cm
+                print(f"Position: {position}, Distance: {distance:.3f}m")
+
+        self.last_pose = position.copy()
+
+    def save_trajectory(self, filename="trajectory.npy"):
+        """Save trajectory to file"""
+        np.save(filename, self.poses)
+        print(f"Saved {len(self.poses)} poses to {filename}")
+
+# Create components
+sensor = RealSenseSensor()
+slam = RTABMapSLAM()
+monitor = PoseMonitor()
+
+# Register callback
+slam.register_pose_callback(monitor.on_new_pose)
+
+# Run SLAM
+try:
+    run_slam(sensor, slam, duration=30)
+finally:
+    monitor.save_trajectory()
+```
+
+## Different Sensors
+
+### Using OAK-D Pro
+
+```python
+#!/usr/bin/env python3
+"""oakd_slam.py - SLAM with OAK-D Pro"""
+
+from neuronav import OAKDSensor, SensorConfig, run_slam, RTABMapSLAM
+
+# Configure OAK-D
+config = SensorConfig(
+    rgb_width=1280,
+    rgb_height=720,
+    fps=30,
+    custom_params={
+        "laser_dot_projector": "800",
+        "manual_focus": "auto"
+    }
+)
+
+# Create components
+sensor = OAKDSensor(config)
+slam = RTABMapSLAM()
+
+# Run SLAM
+run_slam(sensor, slam, visualize=True)
+```
+
+### Switching Between Sensors
+
+```python
+#!/usr/bin/env python3
+"""sensor_switch.py - Switch between different sensors"""
+
+from neuronav import RealSenseSensor, OAKDSensor, run_slam, RTABMapSLAM
+import sys
+
+# Get sensor type from command line
+sensor_type = sys.argv[1] if len(sys.argv) > 1 else "realsense"
+
+# Create appropriate sensor
+if sensor_type == "realsense":
+    sensor = RealSenseSensor()
+    print("Using Intel RealSense")
+elif sensor_type == "oakd":
+    sensor = OAKDSensor()
+    print("Using OAK-D Pro")
+else:
+    print(f"Unknown sensor: {sensor_type}")
+    sys.exit(1)
+
+# Create SLAM
+slam = RTABMapSLAM()
+
+# Run
+run_slam(sensor, slam, visualize=True)
+```
+
+## Save and Load Maps
+
+Work with persistent maps:
+
+```python
+#!/usr/bin/env python3
+"""map_persistence.py - Save and load SLAM maps"""
+
+from neuronav import RealSenseSensor, RTABMapSLAM, run_slam
+import os
+
+MAP_FILE = "persistent_map.db"
+
+# Create components
+sensor = RealSenseSensor()
+slam = RTABMapSLAM()
+
+# Load existing map if available
+if os.path.exists(MAP_FILE):
+    print(f"Loading existing map from {MAP_FILE}")
+    slam.load_map(MAP_FILE)
+else:
+    print("Starting new map")
+
+# Run SLAM
+try:
+    run_slam(sensor, slam, duration=60)
+finally:
+    # Save map
+    print(f"Saving map to {MAP_FILE}")
+    slam.save_map(MAP_FILE)
+    print("Map saved successfully!")
+```
+
+## Performance Profiles
+
+Examples optimized for different scenarios:
+
+### Fast Navigation
+
+```python
+#!/usr/bin/env python3
+"""fast_robot.py - Optimized for high-speed robots"""
+
+from neuronav import RealSenseSensor, SensorConfig, RTABMapSLAM, SlamConfig, run_slam
+
+# Fast sensor config
+sensor = RealSenseSensor(SensorConfig(
+    rgb_width=640,
+    rgb_height=480,
+    fps=60,
+    enable_imu=True
+))
+
+# Fast SLAM config
+slam = RTABMapSLAM(SlamConfig(
+    custom_params={
+        "Rtabmap/DetectionRate": "2.0",
+        "Vis/MaxFeatures": "500",
+        "RGBD/LinearUpdate": "0.2",
+        "RGBD/AngularUpdate": "0.2"
+    }
+))
+
+run_slam(sensor, slam)
+```
+
+### High-Quality Mapping
+
+```python
+#!/usr/bin/env python3
+"""high_quality.py - Maximum quality 3D reconstruction"""
+
+from neuronav import RealSenseSensor, SensorConfig, RTABMapSLAM, SlamConfig, run_slam
+
+# High-res sensor
+sensor = RealSenseSensor(SensorConfig(
+    rgb_width=1920,
+    rgb_height=1080,
+    depth_width=1280,
+    depth_height=720,
+    fps=30
+))
+
+# Quality SLAM
+slam = RTABMapSLAM(SlamConfig(
+    custom_params={
+        "Rtabmap/DetectionRate": "0",
+        "Vis/MaxFeatures": "2000",
+        "Grid/3D": "true",
+        "Grid/CellSize": "0.01"
+    }
+))
+
+run_slam(sensor, slam, visualize=True)
+```
+
+## Running Examples
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/neuronav/neuronav-slam-sdk.git
+   cd neuronav-slam-sdk/examples
+   ```
+
+2. **Run any example:**
+   ```bash
+   python3 minimal_slam.py
+   ```
+
+3. **With Docker:**
+   ```bash
+   docker run -it --rm --privileged -v /dev:/dev \
+     neuronav-slam python3 /workspace/examples/minimal_slam.py
+   ```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Advanced Examples" icon="code" href="/examples/advanced">
+    More complex examples
+  </Card>
+
+  <Card title="Configuration" icon="gear" href="/configuration/overview">
+    Detailed configuration
+  </Card>
+
+  <Card title="Custom Sensors" icon="plus" href="/sensors/custom-sensors">
+    Add your own camera
+  </Card>
+
+  <Card title="Troubleshooting" icon="wrench" href="/configuration/troubleshooting">
+    Solve issues
+  </Card>
+</CardGroup>

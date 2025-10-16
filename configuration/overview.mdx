@@ -1,0 +1,236 @@
+---
+title: Configuration
+description: SDK configuration options and presets
+---
+
+# Configuration
+
+Configure sensors and SLAM algorithms using Python dataclasses. Choose from presets or customize your own.
+
+## Quick Presets
+
+Ready-to-use configurations for common scenarios:
+
+<Tabs>
+  <Tab title="Fast Robot">
+    For high-speed navigation (drones, fast robots).
+
+    ```python
+    from neuronav import SensorConfig, SlamConfig
+
+    # Sensor: Low latency
+    sensor_config = SensorConfig(
+        rgb_width=640,
+        rgb_height=480,
+        fps=60,  # High FPS
+        enable_imu=True
+    )
+
+    # SLAM: Fast processing
+    slam_config = SlamConfig(
+        custom_params={
+            "Rtabmap/DetectionRate": "2.0",  # Process less frames
+            "Vis/MaxFeatures": "500",  # Less features
+            "RGBD/LinearUpdate": "0.2",  # Update less often
+            "RGBD/AngularUpdate": "0.2"
+        }
+    )
+    ```
+  </Tab>
+
+  <Tab title="3D Mapping">
+    For high-quality 3D reconstruction.
+
+    ```python
+    # Sensor: High resolution
+    sensor_config = SensorConfig(
+        rgb_width=1920,
+        rgb_height=1080,
+        depth_width=1280,
+        depth_height=720,
+        fps=30
+    )
+
+    # SLAM: Maximum quality
+    slam_config = SlamConfig(
+        custom_params={
+            "Rtabmap/DetectionRate": "0",  # Process all frames
+            "Vis/MaxFeatures": "2000",  # More features
+            "Grid/3D": "true",  # 3D occupancy grid
+            "Grid/CellSize": "0.01"  # 1cm voxels
+        }
+    )
+    ```
+  </Tab>
+
+  <Tab title="Low Power">
+    For battery-powered devices.
+
+    ```python
+    # Sensor: Minimal processing
+    sensor_config = SensorConfig(
+        rgb_width=640,
+        rgb_height=480,
+        fps=15,  # Low FPS
+        enable_imu=False  # Save power
+    )
+
+    # SLAM: Efficient settings
+    slam_config = SlamConfig(
+        enable_loop_closing=False,  # Save CPU
+        custom_params={
+            "Rtabmap/MemoryThr": "300",  # Limit memory
+            "Vis/MaxFeatures": "300"
+        }
+    )
+    ```
+  </Tab>
+</Tabs>
+
+## Sensor Configuration
+
+Full `SensorConfig` dataclass with all options:
+
+```python
+from neuronav import SensorConfig
+
+config = SensorConfig(
+    # Device selection
+    device_id="123456",     # Camera serial number (optional)
+
+    # Resolution settings
+    rgb_width=1280,         # Color image width
+    rgb_height=720,         # Color image height
+    depth_width=640,        # Depth image width
+    depth_height=480,       # Depth image height
+
+    # Performance
+    fps=30,                 # Frames per second
+
+    # Features
+    enable_imu=True,        # Use IMU if available
+    enable_ir=False,        # IR projector/illuminator
+
+    # Advanced parameters
+    custom_params={
+        "exposure": "auto",  # or specific value in microseconds
+        "gain": "16",        # Sensor gain
+        "laser_power": "150",  # 0-360 for RealSense
+        "temporal_filter": "true",  # Smooth depth over time
+        "spatial_filter": "true",   # Smooth depth spatially
+        "hole_filling": "true"      # Fill depth holes
+    }
+)
+```
+
+## SLAM Configuration
+
+Full `SlamConfig` dataclass explained:
+
+```python
+from neuronav import SlamConfig
+
+config = SlamConfig(
+    # ROS2 Topics (usually auto-configured)
+    rgb_topic="/camera/color/image_raw",
+    depth_topic="/camera/depth/image_raw",
+    camera_info_topic="/camera/color/camera_info",
+    imu_topic="/imu/data",
+    odom_topic="/odom",
+
+    # Frame IDs
+    robot_base_frame="base_link",
+    global_frame="map",
+    odom_frame="odom",
+
+    # Core features
+    enable_loop_closing=True,     # Detect and close loops
+    enable_visualization=False,   # RTAB-Map GUI
+    map_publish_frequency_ms=1000,  # Map update rate
+
+    # Docker settings
+    use_gpu=False,
+    ros_domain_id=0,
+
+    # RTAB-Map parameters
+    custom_params={
+        # Detection
+        "Rtabmap/DetectionRate": "1.0",  # Hz, 0=no limit
+        "Rtabmap/MemoryThr": "0",  # Max nodes, 0=unlimited
+
+        # Visual features
+        "Vis/FeatureType": "6",  # 6=ORB, 0=SURF, 11=SuperPoint
+        "Vis/MaxFeatures": "1000",  # Features per image
+
+        # Loop closure
+        "Rtabmap/LoopThr": "0.11",  # Loop closure threshold
+        "RGBD/ProximityBySpace": "true",
+
+        # Optimization
+        "Optimizer/Strategy": "1",  # 0=TORO, 1=g2o, 2=GTSAM
+        "RGBD/OptimizeFromGraphEnd": "false"
+    }
+)
+```
+
+## Usage Examples
+
+### Fast Processing
+
+```python
+sensor = RealSenseSensor(SensorConfig(
+    rgb_width=640,
+    rgb_height=480,
+    fps=30
+))
+
+slam = RTABMapSLAM(SlamConfig(
+    custom_params={
+        "Rtabmap/DetectionRate": "2.0",
+        "Vis/MaxFeatures": "500"
+    }
+))
+
+run_slam(sensor, slam)
+```
+
+### High Accuracy
+
+```python
+sensor = RealSenseSensor(SensorConfig(
+    rgb_width=1920,
+    rgb_height=1080,
+    fps=30
+))
+
+slam = RTABMapSLAM(SlamConfig(
+    custom_params={
+        "Rtabmap/DetectionRate": "0",
+        "Vis/MaxFeatures": "2000"
+    }
+))
+
+run_slam(sensor, slam)
+```
+
+## Docker Deployment
+
+```bash
+# Build
+./docker_build.sh
+
+# Run
+./docker_run.sh
+
+# Or use docker-compose
+docker-compose up
+```
+
+## Visualization
+
+Enable web-based 3D visualization:
+
+```python
+run_slam(sensor, slam, visualize=True)
+# Open http://localhost:8765
+```
