@@ -1,54 +1,78 @@
+---
+title: "Docker Deployment"
+description: "Deploy Neuronav SLAM SDK using Docker for consistent, reproducible environments"
+---
 
-Deploy Neuronav SLAM SDK using Docker for consistent, reproducible environments.
+Deploy the SDK with Docker for the fastest, most consistent setup across all platforms.
 
 ## Quick Start
 
+The repository includes ready-to-use scripts:
+
 ```bash
-# Clone and build
-git clone https://github.com/neuronav/neuronav-slam-sdk.git
+# Clone repository
+git clone https://github.com/neuronav-io/neuronav-slam-sdk.git
 cd neuronav-slam-sdk
+
+# Build Docker image
 ./docker_build.sh
 
-# Run container
+# Run container with camera access
 ./docker_run.sh
 
-# Test SLAM
+# Inside container, test SLAM
 python3 examples/minimal_slam.py
 ```
 
-## Dockerfile Overview
+## What's Included
 
-Our Dockerfile includes everything needed for SLAM:
+The Docker image automatically provides:
+- ROS2 Humble
+- RTAB-Map SLAM
+- Intel RealSense drivers
+- OAK-D Pro (DepthAI) drivers
+- All Python dependencies
 
-```dockerfile
-FROM ros:humble-ros-base
+## Manual Docker Commands
 
-# Install SLAM packages
-RUN apt-get update && apt-get install -y \
-    ros-humble-rtabmap-ros \
-    ros-humble-realsense2-camera \
-    ros-humble-depthai-ros \
-    ros-humble-foxglove-bridge \
-    ros-humble-imu-filter-madgwick
+If you prefer manual control over the provided scripts:
 
-# Install Python dependencies
-RUN pip3 install numpy opencv-python depthai
+**Build the image:**
+```bash
+docker build -t neuronav-slam .
+```
 
-# Copy SDK
-COPY . /workspace
-WORKDIR /workspace
+**Run with camera access:**
+```bash
+docker run -it --rm \
+  --privileged \
+  --network host \
+  -v /dev:/dev \
+  -v $(pwd):/workspace \
+  neuronav-slam
+```
 
-# Install SDK
-RUN pip3 install -e .
+**Run with visualization:**
+```bash
+# Allow X11 connections
+xhost +local:docker
 
-# Set entrypoint
-ENTRYPOINT ["/ros_entrypoint.sh"]
-CMD ["bash"]
+# Run with display
+docker run -it --rm \
+  --privileged \
+  --network host \
+  -v /dev:/dev \
+  -e DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  neuronav-slam
+
+# Restore X11 security
+xhost -local:docker
 ```
 
 ## Docker Compose
 
-For production deployments:
+For running SLAM as a service:
 
 ```yaml
 # docker-compose.yml
@@ -58,370 +82,84 @@ services:
   slam:
     build: .
     image: neuronav-slam:latest
-    container_name: neuronav-slam
     privileged: true
     network_mode: host
-
     volumes:
-      - /dev:/dev  # Camera access
-      - ./data:/data  # Persistent storage
-      - ./maps:/maps  # Save maps
-
+      - /dev:/dev
+      - ./data:/data
     environment:
       - ROS_DOMAIN_ID=1
       - DISPLAY=${DISPLAY}
-
-    devices:
-      - /dev/dri:/dev/dri  # GPU access (optional)
-
     command: python3 /workspace/examples/minimal_slam.py
-
     restart: unless-stopped
-
-  # Optional: Foxglove visualization
-  foxglove:
-    image: ghcr.io/foxglove/studio:latest
-    ports:
-      - "8080:8080"
-    depends_on:
-      - slam
 ```
 
-## Build Options
-
-### Basic Build
-
+Run with:
 ```bash
-docker build -t neuronav-slam .
+docker-compose up
 ```
 
-### With GPU Support
+## Common Use Cases
 
-```bash
-docker build \
-  --build-arg CUDA_VERSION=11.8 \
-  -t neuronav-slam:gpu .
-```
-
-### Multi-Stage Build
-
-```dockerfile
-# Build stage
-FROM ros:humble AS builder
-RUN apt-get update && apt-get install -y build-essential cmake
-COPY . /workspace
-WORKDIR /workspace
-RUN pip3 install -e .
-
-# Runtime stage
-FROM ros:humble-ros-base
-COPY --from=builder /workspace /workspace
-RUN pip3 install /workspace
-```
-
-## Running Containers
-
-### Basic Run
-
+**Save maps to host:**
 ```bash
 docker run -it --rm \
   --privileged \
-  --volume /dev:/dev \
-  neuronav-slam
-```
-
-### With Display (for visualization)
-
-```bash
-docker run -it --rm \
-  --privileged \
-  --volume /dev:/dev \
-  --env DISPLAY=$DISPLAY \
-  --volume /tmp/.X11-unix:/tmp/.X11-unix \
-  neuronav-slam
-```
-
-### With GPU
-
-```bash
-docker run -it --rm \
-  --gpus all \
-  --privileged \
-  --volume /dev:/dev \
-  neuronav-slam:gpu
-```
-
-### With Persistent Storage
-
-```bash
-docker run -it --rm \
-  --privileged \
-  --volume /dev:/dev \
-  --volume $(pwd)/data:/data \
-  --volume $(pwd)/maps:/maps \
-  neuronav-slam
-```
-
-## Camera Access in Docker
-
-### USB Cameras
-
-```bash
-# List USB devices
-docker run --privileged -v /dev/bus/usb:/dev/bus/usb neuronav-slam lsusb
-
-# Run with USB access
-docker run --privileged \
   -v /dev:/dev \
-  -v /dev/bus/usb:/dev/bus/usb \
+  -v $(pwd)/maps:/maps \
   neuronav-slam
 ```
 
-### Network Cameras
-
-```bash
-# Run with network access
-docker run --network host neuronav-slam
-```
-
-## Development Workflow
-
-### Mount Source Code
-
+**Development with live code updates:**
 ```bash
 docker run -it --rm \
   --privileged \
-  --volume /dev:/dev \
-  --volume $(pwd):/workspace \
+  -v /dev:/dev \
+  -v $(pwd):/workspace \
   neuronav-slam bash
-```
 
-### Hot Reload
-
-```python
-# In container, install in editable mode
-pip3 install -e /workspace
-
-# Changes to source code are reflected immediately
-```
-
-### Debug Mode
-
-```bash
-docker run -it --rm \
-  --privileged \
-  --volume /dev:/dev \
-  --env ROS_LOG_DIR=/data/logs \
-  --env RCUTILS_CONSOLE_OUTPUT_FORMAT="[{severity}] [{time}] [{name}]: {message}" \
-  neuronav-slam
-```
-
-## Docker Scripts
-
-### docker_build.sh
-
-```bash
-#!/bin/bash
-echo "Building Neuronav SLAM Docker image..."
-
-# Build with cache
-docker build \
-  --cache-from neuronav-slam:latest \
-  -t neuronav-slam:latest \
-  -t neuronav-slam:$(date +%Y%m%d) \
-  .
-
-echo "Build complete!"
-```
-
-### docker_run.sh
-
-```bash
-#!/bin/bash
-# Allow X11 connections
-xhost +local:docker
-
-# Run container
-docker run -it --rm \
-  --name neuronav-slam \
-  --privileged \
-  --network host \
-  --volume /dev:/dev \
-  --volume $(pwd):/workspace \
-  --env DISPLAY=$DISPLAY \
-  --volume /tmp/.X11-unix:/tmp/.X11-unix \
-  --volume $HOME/.ros:/root/.ros \
-  neuronav-slam:latest "$@"
-
-# Restore X11 security
-xhost -local:docker
-```
-
-## CI/CD Integration
-
-### GitHub Actions
-
-```yaml
-name: Docker Build
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Build Docker image
-      run: docker build -t neuronav-slam .
-
-    - name: Run tests
-      run: |
-        docker run --rm neuronav-slam \
-          python3 -m pytest tests/
-
-    - name: Push to registry
-      run: |
-        echo ${{ secrets.DOCKER_PASSWORD }} | \
-          docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-        docker push neuronav-slam:latest
-```
-
-## Optimization Tips
-
-### Reduce Image Size
-
-```dockerfile
-# Use slim base image
-FROM ros:humble-ros-base-slim
-
-# Clean up after install
-RUN apt-get update && apt-get install -y \
-    package1 package2 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Use multi-stage build
-```
-
-### Build Cache
-
-```bash
-# Build with BuildKit
-DOCKER_BUILDKIT=1 docker build .
-
-# Use cache mount
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip3 install -r requirements.txt
-```
-
-### Security
-
-```dockerfile
-# Run as non-root user
-RUN useradd -m -s /bin/bash neuronav
-USER neuronav
-
-# Scan for vulnerabilities
-docker scan neuronav-slam
+# Inside container
+pip3 install -e /workspace  # Changes reflect immediately
 ```
 
 ## Troubleshooting
 
-### Container Can't Access Camera
-
+**Camera not accessible:**
 ```bash
-# Check device permissions
-ls -la /dev/video*
-ls -la /dev/bus/usb/
+# Verify camera is connected
+lsusb | grep -E "Intel|Luxonis"
 
-# Run with full privileges
-docker run --privileged ...
+# Ensure privileged mode
+docker run --privileged -v /dev:/dev neuronav-slam
 ```
 
-### X11 Display Issues
-
+**Visualization not working:**
 ```bash
-# Allow X connections
+# Allow X11 connections
 xhost +local:docker
 
-# Check DISPLAY variable
+# Verify DISPLAY variable
 echo $DISPLAY
-
-# Use host network
-docker run --network host ...
 ```
 
-### ROS2 Communication Issues
-
+**ROS2 topics not visible:**
 ```bash
-# Check ROS_DOMAIN_ID
-docker run -e ROS_DOMAIN_ID=1 ...
-
-# Use host network for multicast
-docker run --network host ...
-```
-
-## Production Deployment
-
-### Docker Swarm
-
-```yaml
-# stack.yml
-version: '3.8'
-
-services:
-  slam:
-    image: neuronav-slam:latest
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-```
-
-### Kubernetes
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: neuronav-slam
-spec:
-  replicas: 1
-  template:
-    spec:
-      containers:
-      - name: slam
-        image: neuronav-slam:latest
-        securityContext:
-          privileged: true
-        volumeMounts:
-        - name: dev
-          mountPath: /dev
-      volumes:
-      - name: dev
-        hostPath:
-          path: /dev
+# Use host network mode
+docker run --network host neuronav-slam
 ```
 
 ## Next Steps
 
-<CardGroup cols={2}>
+<CardGroup cols={3}>
+  <Card title="Quick Start" icon="play" href="/getting-started/quickstart">
+    Run your first SLAM
+  </Card>
+
   <Card title="Examples" icon="code" href="/examples/basic-slam">
-    Run example code
+    Code examples
   </Card>
 
-  <Card title="Configuration" icon="gear" href="/configuration/overview">
-    Configure SLAM parameters
-  </Card>
-
-  <Card title="Installation" icon="download" href="/getting-started/installation">
-    Native installation
-  </Card>
-
-  <Card title="Troubleshooting" icon="wrench" href="/configuration/troubleshooting">
-    Solve issues
+  <Card title="Configuration" icon="sliders" href="/configuration/overview">
+    Customize settings
   </Card>
 </CardGroup>

@@ -13,7 +13,7 @@
       "anchors": [
         {
           "anchor": "GitHub",
-          "href": "https://github.com/neuronav/neuronav-slam-sdk",
+          "href": "https://github.com/neuronav-io/neuronav-slam-sdk",
           "icon": "github"
         }
       ]
@@ -67,7 +67,7 @@
   },
   "footer": {
     "socials": {
-      "github": "https://github.com/neuronav",
+      "github": "https://github.com/neuronav-io",
       "linkedin": "https://linkedin.com/company/neuronav"
     }
   },

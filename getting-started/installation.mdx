@@ -1,11 +1,75 @@
+---
+title: "Installation"
+description: "Complete installation guide for Neuronav SLAM SDK with Docker and native setup"
+---
 
-Complete installation guide for Neuronav SLAM SDK on different platforms.
-
-## Choose Your Platform
+Choose your installation method based on your needs. Docker is recommended for the fastest setup.
 
 <Tabs>
-  <Tab title="Ubuntu 20.04/22.04">
-    ## Prerequisites
+  <Tab title="Docker (Recommended)">
+    ## Quick Setup with Provided Scripts
+
+    The SDK includes scripts for easy Docker deployment with all dependencies pre-configured.
+
+    ```bash
+    # 1. Clone the repository
+    git clone https://github.com/neuronav-io/neuronav-slam-sdk.git
+    cd neuronav-slam-sdk
+
+    # 2. Build Docker image
+    ./docker_build.sh
+
+    # 3. Run container with camera access
+    ./docker_run.sh
+    ```
+
+    ## What's Included
+
+    The Docker image automatically installs:
+    - ROS2 Humble
+    - RTAB-Map SLAM
+    - Intel RealSense drivers
+    - OAK-D Pro (DepthAI) drivers
+    - All Python dependencies
+
+    ## Verify Installation
+
+    Inside the container:
+
+    ```bash
+    # Test SDK import
+    python3 -c "from neuronav import RealSenseSensor; print('✅ SDK ready!')"
+
+    # Test camera detection
+    realsense-viewer  # For RealSense cameras
+    ```
+
+    ## Manual Docker Setup
+
+    If you prefer manual control:
+
+    ```bash
+    # Build image
+    docker build -t neuronav-slam .
+
+    # Run with camera access
+    docker run -it --rm \
+      --privileged \
+      --network host \
+      -v /dev:/dev \
+      -v $(pwd):/workspace \
+      -e DISPLAY=$DISPLAY \
+      -v /tmp/.X11-unix:/tmp/.X11-unix \
+      neuronav-slam
+    ```
+
+    <Note>
+    **Windows Users**: Use WSL2 with Ubuntu 22.04 and follow the Docker instructions above.
+    </Note>
+  </Tab>
+
+  <Tab title="Native Ubuntu">
+    ## Step 1: Install System Dependencies
 
     ```bash
     # Update system
@@ -15,7 +79,7 @@ Complete installation guide for Neuronav SLAM SDK on different platforms.
     sudo apt install -y curl git python3-pip build-essential cmake
     ```
 
-    ## Install ROS2 Humble
+    ## Step 2: Install ROS2 Humble
 
     ```bash
     # Add ROS2 repository
@@ -23,8 +87,8 @@ Complete installation guide for Neuronav SLAM SDK on different platforms.
       -o /usr/share/keyrings/ros-archive-keyring.gpg
 
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] \
-      http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" \
-      | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+      http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" | \
+      sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
 
     # Install ROS2
     sudo apt update
@@ -35,21 +99,21 @@ Complete installation guide for Neuronav SLAM SDK on different platforms.
     source ~/.bashrc
     ```
 
-    ## Install SLAM Dependencies
+    ## Step 3: Install RTAB-Map SLAM
 
     ```bash
-    # RTAB-Map
-    sudo apt install ros-humble-rtabmap-ros -y
-
-    # Additional packages
-    sudo apt install ros-humble-imu-filter-madgwick \
-                     ros-humble-foxglove-bridge \
-                     ros-humble-image-transport-plugins -y
+    # RTAB-Map and required packages
+    sudo apt install -y \
+      ros-humble-rtabmap-ros \
+      ros-humble-imu-filter-madgwick \
+      ros-humble-foxglove-bridge \
+      ros-humble-image-transport-plugins
     ```
 
-    ## Install Camera Drivers
+    ## Step 4: Install Camera Drivers
 
-    ### For Intel RealSense
+    **For Intel RealSense:**
+
     ```bash
     # Add Intel repository
     sudo mkdir -p /etc/apt/keyrings
@@ -62,15 +126,18 @@ Complete installation guide for Neuronav SLAM SDK on different platforms.
 
     # Install
     sudo apt update
-    sudo apt install librealsense2-dkms librealsense2-utils \
-                     ros-humble-realsense2-camera -y
+    sudo apt install -y \
+      librealsense2-dkms \
+      librealsense2-utils \
+      ros-humble-realsense2-camera
     ```
 
-    ### For OAK-D Pro
+    **For OAK-D Pro:**
+
     ```bash
     # Install DepthAI
     pip3 install depthai opencv-python
-    sudo apt install ros-humble-depthai-ros -y
+    sudo apt install -y ros-humble-depthai-ros
 
     # Setup udev rules
     echo 'SUBSYSTEM=="usb", ATTRS{idVendor}=="03e7", MODE="0666"' | \
@@ -78,261 +145,66 @@ Complete installation guide for Neuronav SLAM SDK on different platforms.
     sudo udevadm control --reload-rules && sudo udevadm trigger
     ```
 
-    ## Install Neuronav SDK
+    ## Step 5: Install Neuronav SDK
 
     ```bash
     # Clone repository
-    git clone https://github.com/neuronav/neuronav-slam-sdk.git
+    git clone https://github.com/neuronav-io/neuronav-slam-sdk.git
     cd neuronav-slam-sdk
 
-    # Install Python package
+    # Install SDK
     pip3 install -e .
-
-    # Verify installation
-    python3 -c "from neuronav import RealSenseSensor; print('✅ SDK installed!')"
-    ```
-  </Tab>
-
-  <Tab title="Windows 11 (WSL2)">
-    ## Enable WSL2
-
-    ```powershell
-    # In PowerShell as Administrator
-    wsl --install -d Ubuntu-22.04
-
-    # Restart computer when prompted
     ```
 
-    ## Configure WSL2
+    ## Step 6: Verify Installation
 
     ```bash
-    # Inside WSL2 terminal
-    sudo apt update && sudo apt upgrade -y
+    # Test SDK
+    python3 -c "from neuronav import RealSenseSensor; print('✅ SDK ready!')"
 
-    # Enable systemd (required for ROS2)
-    echo -e "[boot]\nsystemd=true" | sudo tee /etc/wsl.conf
-
-    # Exit and restart WSL
-    exit
-    # In PowerShell: wsl --shutdown
-    # Then reopen WSL
+    # Test camera
+    realsense-viewer  # For RealSense
     ```
 
-    ## USB Camera Access
-
-    ```powershell
-    # Install USBIPD (in Windows PowerShell)
-    winget install usbipd
-
-    # List USB devices
-    usbipd list
-
-    # Attach camera to WSL (replace 2-4 with your device)
-    usbipd attach --wsl --busid 2-4
-    ```
-
-    ## Continue with Ubuntu Steps
-
-    Follow the Ubuntu installation steps above inside WSL2.
-  </Tab>
-
-  <Tab title="Docker">
-    ## Install Docker
-
-    ```bash
-    # Install Docker Engine
-    curl -fsSL https://get.docker.com -o get-docker.sh
-    sudo sh get-docker.sh
-
-    # Add user to docker group
-    sudo usermod -aG docker $USER
-    newgrp docker
-
-    # Verify Docker
-    docker run hello-world
-    ```
-
-    ## Build Neuronav Image
-
-    ```bash
-    # Clone repository
-    git clone https://github.com/neuronav/neuronav-slam-sdk.git
-    cd neuronav-slam-sdk
-
-    # Build image
-    ./docker_build.sh
-    # Or manually:
-    docker build -t neuronav-slam .
-    ```
-
-    ## Run Container
-
-    ```bash
-    # With device access
-    ./docker_run.sh
-
-    # Or manually:
-    docker run -it --rm \
-      --privileged \
-      --network host \
-      --volume /dev:/dev \
-      --volume $(pwd):/workspace \
-      --env DISPLAY=$DISPLAY \
-      --volume /tmp/.X11-unix:/tmp/.X11-unix \
-      neuronav-slam
-    ```
-
-    ## Docker Compose
-
-    ```yaml
-    # docker-compose.yml
-    version: '3.8'
-    services:
-      neuronav:
-        image: neuronav-slam
-        privileged: true
-        network_mode: host
-        volumes:
-          - /dev:/dev
-          - ./data:/data
-        environment:
-          - ROS_DOMAIN_ID=1
-        command: python3 /workspace/examples/basic_slam.py
-    ```
-
-    ```bash
-    # Run with compose
-    docker-compose up
-    ```
-  </Tab>
-
-  <Tab title="NVIDIA Jetson">
-    ## Jetson-Specific Setup
-
-    ```bash
-    # Update JetPack
-    sudo apt update && sudo apt upgrade -y
-
-    # Install CUDA dependencies
-    sudo apt install nvidia-jetpack -y
-    ```
-
-    ## Install ROS2 from Source
-
-    ```bash
-    # ROS2 may need building from source on Jetson
-    # Follow NVIDIA's ROS2 guide for Jetson
-
-    # Alternative: Use pre-built containers
-    docker pull dustynv/ros:humble-desktop-l4t-r35.3.1
-    ```
-
-    ## Performance Optimization
-
-    ```bash
-    # Set to max performance
-    sudo nvpmodel -m 0
-    sudo jetson_clocks
-
-    # Monitor thermals
-    tegrastats
-    ```
-
-    ## Camera Setup
-
-    ```bash
-    # RealSense works directly
-    # OAK-D needs additional setup
-    pip3 install depthai --extra-index-url https://artifacts.luxonis.com/artifactory/luxonis-python-release-local/
-    ```
+    <Note>
+    **WSL2 Users**: Follow these instructions inside your Ubuntu 22.04 WSL2 distribution. You'll need USBIPD to connect cameras.
+    </Note>
   </Tab>
 </Tabs>
 
-## Verify Installation
+## Troubleshooting
 
-### Test Camera Detection
-
-```bash
-# For RealSense
-realsense-viewer
-
-# For OAK-D
-python3 -c "import depthai; print('OAK-D ready!' if depthai.Device.getAllAvailableDevices() else 'No device')"
-```
-
-### Test ROS2
-
-```bash
-# Check ROS2
-ros2 topic list
-
-# Should show system topics
-```
-
-### Test Neuronav SDK
-
-```python
-# test_install.py
-from neuronav import RealSenseSensor, run_slam, RTABMapSLAM
-
-try:
-    sensor = RealSenseSensor()
-    print("✅ Sensor initialized")
-
-    slam = RTABMapSLAM()
-    print("✅ SLAM initialized")
-
-    print("✅ Installation successful!")
-except Exception as e:
-    print(f"❌ Error: {e}")
-```
-
-## Common Installation Issues
-
-### Permission Denied
-
-```bash
-# Add user to required groups
-sudo usermod -a -G dialout $USER
-sudo usermod -a -G video $USER
-# Log out and back in
-```
-
-### ROS2 Not Found
-
-```bash
-# Source ROS2 setup
-source /opt/ros/humble/setup.bash
-echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
-```
-
-### Camera Not Detected
-
+**Camera not detected:**
 ```bash
 # Check USB connection
 lsusb | grep -E "Intel|Luxonis"
 
-# Reset USB
-sudo modprobe -r uvcvideo
-sudo modprobe uvcvideo
+# Add user to video group
+sudo usermod -a -G video $USER
+# Log out and back in
 ```
 
-## Next Steps
+**ROS2 not found:**
+```bash
+# Source ROS2 environment
+source /opt/ros/humble/setup.bash
+echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+```
 
-<CardGroup cols={2}>
-  <Card title="Quick Start" icon="rocket" href="/getting-started/quickstart">
-    Start using the SDK
+For more help, see the [full troubleshooting guide](/configuration/troubleshooting).
+
+## What's Next?
+
+<CardGroup cols={3}>
+  <Card title="Quick Start" icon="play" href="/getting-started/quickstart">
+    Run your first SLAM
   </Card>
 
   <Card title="Examples" icon="code" href="/examples/basic-slam">
     See code examples
   </Card>
 
-  <Card title="Troubleshooting" icon="wrench" href="/configuration/troubleshooting">
-    Solve common issues
-  </Card>
-
-  <Card title="Docker Guide" icon="docker" href="/configuration/docker">
-    Advanced Docker setup
+  <Card title="Configuration" icon="sliders" href="/configuration/overview">
+    Customize settings
   </Card>
 </CardGroup>
